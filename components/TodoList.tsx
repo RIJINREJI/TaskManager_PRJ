@@ -1,47 +1,48 @@
 import React, { useState, useEffect } from "react"; // Import React and necessary hooks
-import styles from "@/styles/TodoList.module.css"; // Import CSS for component styling
+import styles from "@/styles/TodoList.module.css"; // Import CSS for styling
 
 // Define the structure of a task
 interface Task {
-  id: number; // Unique identifier for the task
-  text: string; // Description of the task
-  completed: boolean; // Task's completion status
+  id: number; // Unique identifier
+  text: string; // Task description
+  completed: boolean; // Completion status
+  dueDate?: string; // Optional due date
 }
 
 const TodoList: React.FC = () => {
-  // State to manage the list of tasks
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]); // State for tasks
+  const [newTask, setNewTask] = useState(""); // State for task input
+  const [filter, setFilter] = useState<"all" | "completed" | "pending">("all"); // State for filter
+  const [searchText, setSearchText] = useState(""); // State for search query
+  const [dueDate, setDueDate] = useState(""); // State for due date
 
-  // State to manage the input value for adding new tasks
-  const [newTask, setNewTask] = useState("");
-
-  // State to manage the filter type (all, completed, or pending tasks)
-  const [filter, setFilter] = useState<"all" | "completed" | "pending">("all");
-
-  // Load tasks from localStorage when the component mounts
+  // Load tasks from localStorage on component mount
   useEffect(() => {
-    const storedTasks = localStorage.getItem("tasks"); // Retrieve tasks from localStorage
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks)); // Parse the string into tasks and set state
-    }
+    const storedTasks = localStorage.getItem("tasks");
+    if (storedTasks) setTasks(JSON.parse(storedTasks));
   }, []);
 
-  // Save tasks to localStorage whenever the tasks state changes
+  // Save tasks to localStorage whenever tasks state changes
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks)); // Convert tasks to JSON and store
+    localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
 
-  // Function to add a new task
+  // Add a new task
   const handleAddTask = () => {
     if (newTask.trim() === "") return; // Prevent adding empty tasks
-    const task: Task = { id: Date.now(), text: newTask, completed: false }; // Create a new task object
-    setTasks([...tasks, task]); // Append the new task to the existing list
-    setNewTask(""); // Clear the input field after adding
+    const task: Task = {
+      id: Date.now(), // Generate unique ID based on current timestamp
+      text: newTask, // Set task text
+      completed: false, // Set task as incomplete
+      dueDate, // Set task due date
+    };
+    setTasks([...tasks, task]); // Add new task to tasks state
+    setNewTask(""); // Clear task input
+    setDueDate(""); // Clear due date input
   };
 
-  // Function to toggle the completion status of a task
+  // Toggle task completion status
   const handleToggleTask = (id: number) => {
-    // Update the specific task by flipping its `completed` status
     setTasks(
       tasks.map((task) =>
         task.id === id ? { ...task, completed: !task.completed } : task
@@ -49,83 +50,103 @@ const TodoList: React.FC = () => {
     );
   };
 
-  // Function to delete a task from the list
+  // Delete a task
   const handleDeleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id)); // Remove the task with the matching ID
+    setTasks(tasks.filter((task) => task.id !== id));
   };
 
-  // Filter the tasks based on the selected filter type
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "completed") return task.completed; // Show completed tasks
-    if (filter === "pending") return !task.completed; // Show pending tasks
-    return true; // Show all tasks by default
-  });
+  // Edit a task's text
+  const handleEditTask = (id: number, newText: string) => {
+    setTasks(
+      tasks.map((task) => (task.id === id ? { ...task, text: newText } : task))
+    );
+  };
+
+  // Clear all completed tasks
+  const clearCompletedTasks = () => {
+    setTasks(tasks.filter((task) => !task.completed));
+  };
+
+  // Filter tasks based on filter state and search query
+  const filteredTasks = tasks
+    .filter((task) => {
+      if (filter === "completed") return task.completed;
+      if (filter === "pending") return !task.completed;
+      return true;
+    })
+    .filter((task) =>
+      task.text.toLowerCase().includes(searchText.toLowerCase())
+    );
 
   return (
     <div className={styles.container}>
-      {/* Title section */}
-      <h2>To-Do List</h2>
+      <h2>To-Do List</h2> {/* Title */}
 
-      {/* Input section to add new tasks */}
+      {/* Input Section */}
       <div className={styles.inputContainer}>
-        {/* Input field for typing the new task */}
         <input
           type="text"
-          placeholder="Add a new task" // Placeholder for the input
-          value={newTask} // Bind the input value to state
-          onChange={(e) => setNewTask(e.target.value)} // Update state on user input
+          placeholder="Add a new task"
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)} // Update newTask state on input change
         />
-        {/* Button to add the new task */}
-        <button onClick={handleAddTask}>Add Task</button>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)} // Update dueDate state on input change
+        />
+        <button onClick={handleAddTask}>Add Task</button> {/* Add task button */}
       </div>
 
-      {/* Filter section for toggling between task views */}
+      {/* Search and Filter Section */}
       <div className={styles.filters}>
-        {/* Button to view all tasks */}
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)} // Update searchText state on input change
+        />
         <button
-          onClick={() => setFilter("all")} // Set filter to "all"
-          className={filter === "all" ? styles.active : ""} // Highlight if active
+          onClick={() => setFilter("all")}
+          className={filter === "all" ? styles.active : ""} // Highlight active filter
         >
           All
         </button>
-        {/* Button to view only completed tasks */}
         <button
-          onClick={() => setFilter("completed")} // Set filter to "completed"
-          className={filter === "completed" ? styles.active : ""} // Highlight if active
+          onClick={() => setFilter("completed")}
+          className={filter === "completed" ? styles.active : ""} // Highlight active filter
         >
           Completed
         </button>
-        {/* Button to view only pending tasks */}
         <button
-          onClick={() => setFilter("pending")} // Set filter to "pending"
-          className={filter === "pending" ? styles.active : ""} // Highlight if active
+          onClick={() => setFilter("pending")}
+          className={filter === "pending" ? styles.active : ""} // Highlight active filter
         >
           Pending
         </button>
+        <button onClick={clearCompletedTasks}>Clear Completed</button> {/* Clear completed tasks button */}
       </div>
 
-      {/* Task list section */}
+      {/* Task List Section */}
       <ul className={styles.taskList}>
-        {/* Loop through the filtered tasks and display each task */}
         {filteredTasks.map((task) => (
-          <li
-            key={task.id} // Unique key for each list item
-            style={{
-              textDecoration: task.completed ? "line-through" : "none", // Strike-through if completed
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "0.5rem",
-            }}
-          >
-            {/* Task text, clicking toggles completion */}
+          <li key={task.id} className={styles.taskItem}>
             <span
               onClick={() => handleToggleTask(task.id)} // Toggle task completion on click
-              style={{ cursor: "pointer" }}
+              style={{
+                textDecoration: task.completed ? "line-through" : "none", // Strike-through completed tasks
+                cursor: "pointer",
+              }}
             >
               {task.text}
             </span>
-            {/* Delete button for each task */}
-            <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
+            {task.dueDate && <span className={styles.dueDate}>{task.dueDate}</span>} {/* Display due date if available */}
+            <button onClick={() => handleDeleteTask(task.id)}>Delete</button> {/* Delete task button */}
+            <input
+              type="text"
+              placeholder="Edit task"
+              onBlur={(e) => handleEditTask(task.id, e.target.value)} // Edit task text on blur
+            />
           </li>
         ))}
       </ul>
